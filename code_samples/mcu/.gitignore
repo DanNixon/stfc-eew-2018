@@ -1,2 +1,5 @@
 .pioenvs
 .piolibdeps
+
+# Thanks PIO VSCode plugin, very helpful defaults you have there... *facedesk*
+.travis.yml
