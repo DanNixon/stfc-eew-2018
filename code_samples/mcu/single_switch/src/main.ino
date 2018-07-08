@@ -5,12 +5,10 @@ const int switch_pin = 15;
 volatile unsigned long last_change_time = 0;
 volatile bool switch_changed = false;
 
-void handle_interrupt()
-{
+void handle_interrupt() {
   const auto now = millis();
 
-  if (now - last_change_time > 100)
-  {
+  if (now - last_change_time > 100) {
     switch_changed = true;
     last_change_time = now;
   }
@@ -24,8 +22,7 @@ void setup() {
 }
 
 void loop() {
-  if (switch_changed)
-  {
+  if (switch_changed) {
     switch_changed = false;
 
     const auto state = digitalRead(switch_pin);

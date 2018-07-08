@@ -4,9 +4,8 @@ const int led_pin = 14;
 
 Adafruit_NeoPixel leds = Adafruit_NeoPixel(1, led_pin, NEO_GRB + NEO_KHZ800);
 
-void set_led(int r, int g, int b)
-{
-  leds.setPixelColor(0, leds.Color(r,g,b));
+void set_led(int r, int g, int b) {
+  leds.setPixelColor(0, leds.Color(r, g, b));
   leds.show();
 }
 

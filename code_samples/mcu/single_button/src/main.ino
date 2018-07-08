@@ -7,12 +7,10 @@ volatile bool button_pushed = false;
 
 unsigned int times_pressed = 0;
 
-void handle_interrupt()
-{
+void handle_interrupt() {
   const auto now = millis();
 
-  if (now - last_change_time > 500)
-  {
+  if (now - last_change_time > 500) {
     button_pushed = true;
     last_change_time = now;
   }
@@ -26,8 +24,7 @@ void setup() {
 }
 
 void loop() {
-  if (button_pushed)
-  {
+  if (button_pushed) {
     button_pushed = false;
 
     Serial << "Button was pushed " << ++times_pressed << " time(s)\n";

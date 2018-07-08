@@ -3,8 +3,7 @@
 /* Define the pin that has an LED connected to it (in this case on the board) */
 const int led_pin = 13;
 
-void setup()
-{
+void setup() {
   /* Open the VCP/serial port, this must be done before it is used */
   Serial.begin(9600);
 
@@ -15,8 +14,7 @@ void setup()
   digitalWrite(led_pin, LOW);
 }
 
-void loop()
-{
+void loop() {
   /* Get the previous state of the LED pin */
   const auto led_state = digitalRead(led_pin);
 
@@ -25,7 +23,8 @@ void loop()
   digitalWrite(led_pin, new_led_state);
 
   /* Send some data via serial */
-  Serial << "The LED was " << led_state << ", now it is " << new_led_state << '\n';
+  Serial << "The LED was " << led_state << ", now it is " << new_led_state
+         << '\n';
 
   /* Wait 100 milliseconds (0.1 seconds) */
   delay(100);

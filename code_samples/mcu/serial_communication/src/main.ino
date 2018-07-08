@@ -4,8 +4,7 @@ const uint8_t start = '>';
 
 FastCRC8 CRC8;
 
-void send_message(uint8_t * buffer, size_t length)
-{
+void send_message(uint8_t *buffer, size_t length) {
   uint8_t message_buffer[length + 4];
   message_buffer[0] = start;
   message_buffer[1] = length;
@@ -21,15 +20,14 @@ void send_message(uint8_t * buffer, size_t length)
 void setup() {
   Serial.begin(9600);
 
-  while(!Serial)
-  {
+  while (!Serial) {
     delay(500);
   }
 }
 
 void loop() {
   const uint32_t now = millis();
-  send_message((uint8_t *) &now, sizeof(uint32_t));
+  send_message((uint8_t *)&now, sizeof(uint32_t));
 
   delay(1000);
 }
