@@ -8,7 +8,14 @@ import crcmod.predefined
 import serial
 
 
-port = serial.Serial(sys.argv[1])
+port = serial.Serial(
+    port=sys.argv[1],
+    baudrate=9600,
+    bytesize=serial.EIGHTBITS,
+    parity=serial.PARITY_NONE,
+    stopbits=serial.STOPBITS_ONE,
+    timeout=1
+)
 
 
 def handle_message(payload):
