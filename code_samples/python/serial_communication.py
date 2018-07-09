@@ -13,8 +13,23 @@ port = serial.Serial(sys.argv[1])
 
 def handle_message(payload):
     values = [hex(ord(v)) for v in payload]
-    print(' '.join(values))
+    print("Payload:", ' '.join(values))
 
+
+def send_message(payload):
+    crc = crcmod.predefined.Crc('crc-8')
+    crc.update(chr(len(payload)))
+    crc.update(payload)
+
+    port.write('>')
+    port.write(chr(len(payload)))
+    for b in payload:
+        port.write(b)
+    port.write(chr(crc.crcValue))
+    port.write('\x00')
+
+
+send_message(b'\x01\x02\x03\x04\x05\x06\x07\x08')
 
 while True:
     c = port.read()
