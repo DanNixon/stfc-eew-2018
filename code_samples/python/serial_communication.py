@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
+
+from __future__ import print_function
 
 import sys
 
@@ -11,7 +13,7 @@ port = serial.Serial(sys.argv[1])
 
 def handle_message(payload):
     values = [hex(ord(v)) for v in payload]
-    print ' '.join(values)
+    print(' '.join(values))
 
 
 while True:
