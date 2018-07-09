@@ -18,7 +18,6 @@ amount of background reading in before the week.
 - Python
 - Finite State Machines
 - Arduino framework
-- CAN bus
 
 ### Mentor
 
@@ -59,7 +58,6 @@ The project will be to model this safety system using low cost hardware.
 ## Requirements
 
 - Finite state machine implemented in Python on a Linux single board computer
-- CAN bus for communication between sensors and SBC
 - Several sensor/input nodes based on microcontroller development boards
   - Door controller
     - Door motor
@@ -83,8 +81,7 @@ The project will be to model this safety system using low cost hardware.
 
 Group 1:
 
-1. CAN bus prototype
-2. Controller software
+1. Controller software
 
 Group 2:
 
