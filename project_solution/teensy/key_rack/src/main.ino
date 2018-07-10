@@ -4,8 +4,8 @@
 
 const uint8_t this_node_type = DEVICE_KEY_RACK;
 const uint8_t this_node_id = 0;
-const int led_pin = 14;
 
+const int led_pin = 14;
 const int key_rack_switch_pin = 15;
 
 volatile unsigned long last_change_time = 0;

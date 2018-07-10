@@ -10,7 +10,7 @@ enum Command {
 
 enum DeviceType {
   DEVICE_SEARCH_POINT = 1,
-  DEVICE_SHUTTER = 2,
+  DEVICE_SHUTTER_CONTROL = 2,
   DEVICE_DOOR = 3,
   DEVICE_KEY_RACK = 4
 };
