@@ -4,12 +4,19 @@
 
 from __future__ import print_function
 
-from transitions import Machine
+from transitions import Machine, State
 
 
 class Door(object):
 
-    states = ['closed', 'open', 'closing', 'opening', 'error', 'unknown position']
+    states = [
+        State(name='closed', on_enter=['on_closed']),
+        State(name='open', on_enter=['on_open']),
+        State(name='closing'),
+        State(name='opening'),
+        State(name='error', on_enter=['on_error']),
+        State(name='unknown position')
+    ]
 
     def __init__(self):
         self.machine = Machine(
@@ -56,12 +63,7 @@ class Door(object):
 
         self.machine.add_transition(
             trigger='safety_edge_hit',
-            source='*',
-            dest='error'
-        )
-        self.machine.add_transition(
-            trigger='safety_edge_hit',
-            source='*',
+            source=['opening', 'closing'],
             dest='error'
         )
 
@@ -70,6 +72,15 @@ class Door(object):
             source='*',
             dest='error'
         )
+
+    def on_open(self):
+        print('The door is now open')
+
+    def on_error(self):
+        print('The dorr is now closed.')
+
+    def on_error(self):
+        print('Oh no, it\'s all gone wrong!')
 
 
 d = Door();
