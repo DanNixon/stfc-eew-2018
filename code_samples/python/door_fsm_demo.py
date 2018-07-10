@@ -76,8 +76,8 @@ class Door(object):
     def on_open(self):
         print('The door is now open')
 
-    def on_error(self):
-        print('The dorr is now closed.')
+    def on_closed(self):
+        print('The door is now closed.')
 
     def on_error(self):
         print('Oh no, it\'s all gone wrong!')
