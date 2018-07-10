@@ -1,0 +1,25 @@
+#pragma once
+
+enum Command {
+  CMD_ALIVE = 1,
+  CMD_HEARTBEAT = 2,
+  CMD_SET_LED = 3,
+  CMD_STATE_CHANGED = 4,
+  CMD_BUTTON_PRESS = 5
+};
+
+enum DeviceType {
+  DEVICE_SEARCH_POINT = 1,
+  DEVICE_SHUTTER = 2,
+  DEVICE_DOOR = 3,
+  DEVICE_KEY_RACK = 4
+};
+
+enum DoorStates {
+  DOOR_STATE_UNKNOWN = 1,
+  DOOR_STATE_CLOSED = 2,
+  DOOR_STATE_CLOSING = 3,
+  DOOR_STATE_OPEN = 4,
+  DOOR_STATE_OPENING = 5,
+  DOOR_STATE_ERROR = 6
+};
