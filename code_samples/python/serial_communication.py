@@ -36,7 +36,7 @@ def send_message(payload):
     port.write('\x00')
 
 
-send_message(b'\x01\x02\x03\x04\x05\x06\x07\x08')
+send_message(b'\x04\x00\x03\x00\x00\xff')
 
 while True:
     c = port.read()
