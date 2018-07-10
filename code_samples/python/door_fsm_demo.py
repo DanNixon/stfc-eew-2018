@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-# Best run through IPython: open IPython and use `%run fsm_demo.py`
+# Best run through IPython: open IPython and use `%run door_fsm_demo.py`
 
 from __future__ import print_function
 
