@@ -62,7 +62,8 @@ void loop() {
     const uint8_t state = !digitalRead(key_rack_switch_pin);
 
     /* Send message if it has */
-    communication_tx(CMD_STATE_CHANGED, (uint8_t*)&state, 1);
+    uint8_t msg[] = {0, state};
+    communication_tx(CMD_SWITCH_CHANGE, msg, 2);
   }
 
   delay(1);
