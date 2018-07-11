@@ -6,7 +6,8 @@ enum Command {
   CMD_SET_LED = 3,
   CMD_STATE_CHANGED = 4,
   CMD_BUTTON_PRESS = 5,
-  CMD_DOOR_LOCK = 6
+  CMD_SWITCH_CHANGE = 6,
+  CMD_DOOR_LOCK = 7
 };
 
 enum DeviceType {
