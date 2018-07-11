@@ -5,7 +5,8 @@ enum Command {
   CMD_HEARTBEAT = 2,
   CMD_SET_LED = 3,
   CMD_STATE_CHANGED = 4,
-  CMD_BUTTON_PRESS = 5
+  CMD_BUTTON_PRESS = 5,
+  CMD_DOOR_LOCK = 6
 };
 
 enum DeviceType {
@@ -21,5 +22,6 @@ enum DoorStates {
   DOOR_STATE_CLOSING = 3,
   DOOR_STATE_OPEN = 4,
   DOOR_STATE_OPENING = 5,
-  DOOR_STATE_ERROR = 6
+  DOOR_STATE_ERROR = 6,
+  DOOR_STATE_LOCKED = 7
 };
