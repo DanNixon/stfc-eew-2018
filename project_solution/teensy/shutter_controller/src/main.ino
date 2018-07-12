@@ -2,7 +2,7 @@
 #include <led.h>
 #include <types.h>
 
-const uint8_t this_node_type = DEVICE_SEARCH_POINT;
+const uint8_t this_node_type = DEVICE_SHUTTER_CONTROL;
 const uint8_t this_node_id = 0;
 
 const int led_pin = 14;
