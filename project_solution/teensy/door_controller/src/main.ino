@@ -7,48 +7,32 @@
 int8_t green_flash = -1;
 int8_t yellow_flash = -1;
 
-void on_state_unknown()
-{
-  led_set(0, 0, 0);
-}
+void on_enter_state_unknown() { led_set(0, 0, 0); }
 
-void on_state_open()
-{
-  led_set(0, 255, 0);
-}
+void on_enter_state_open() { led_set(0, 255, 0); }
 
-void on_state_closed()
-{
-  led_set(255, 255, 0);
-}
+void on_enter_state_closed() { led_set(255, 255, 0); }
 
-void on_state_error()
-{
-  led_set(255, 0, 0);
-}
+void on_enter_state_error() { led_set(255, 0, 0); }
 
-void on_state_opening()
-{
-  green_flash = true;
-}
+void on_enter_state_opening() { green_flash = 0; }
 
-void on_state_closing()
-{
-  yellow_flash = true;
-}
+void on_exit_state_opening() { green_flash = -1; }
 
-void on_state_locked()
-{
-  led_set(0, 0, 255);
-}
+void on_enter_state_closing() { yellow_flash = 0; }
 
-State state_unknown(on_state_unknown, NULL, NULL);
-State state_error(on_state_error, NULL, NULL);
-State state_open(on_state_open, NULL, NULL);
-State state_opening(on_state_opening, NULL, NULL);
-State state_closed(on_state_closed, NULL, NULL);
-State state_closing(on_state_closing, NULL, NULL);
-State state_locked(on_state_locked, NULL, NULL);
+void on_exit_state_closing() { yellow_flash = -1; }
+
+void on_enter_state_locked() { led_set(0, 0, 255); }
+
+State state_unknown(on_enter_state_unknown, NULL, NULL);
+State state_error(on_enter_state_error, NULL, NULL);
+State state_open(on_enter_state_open, NULL, NULL);
+State state_opening(on_enter_state_opening, NULL, NULL);
+State state_closed(on_enter_state_closed, NULL, on_exit_state_opening);
+State state_closing(on_enter_state_closing, NULL, on_exit_state_closing);
+State state_locked(on_enter_state_locked, NULL, NULL);
+
 Fsm fsm(&state_unknown);
 
 const uint8_t this_node_type = DEVICE_SEARCH_POINT;
@@ -61,27 +45,21 @@ const int input_pins[] = {16, 15, 17, 18, 19};
 volatile unsigned long last_change_time[] = {0, 0, 0, 0, 0};
 volatile bool button_pushed[] = {false, false, false, false, false};
 
-void communication_rx(uint8_t cmd, uint8_t *payload, size_t payload_len)
-{
-  switch (cmd)
-  {
-  case CMD_SET_LED:
-  {
-    if (payload_len == 3)
-    {
-      led_set(payload[0], payload[1], payload[2]);
+void communication_rx(uint8_t cmd, uint8_t *payload, size_t payload_len) {
+  switch (cmd) {
+    case CMD_SET_LED: {
+      if (payload_len == 3) {
+        led_set(payload[0], payload[1], payload[2]);
+      }
+      break;
     }
-    break;
-  }
   }
 }
 
-void handle_input_interrupt(int index)
-{
+void handle_input_interrupt(int index) {
   const auto now = millis();
 
-  if (now - last_change_time[index] > 500)
-  {
+  if (now - last_change_time[index] > 500) {
     button_pushed[index] = true;
     last_change_time[index] = now;
   }
@@ -97,8 +75,7 @@ void open_limit_switch_interrupt() { handle_input_interrupt(3); }
 
 void closed_limit_switch_interrupt() { handle_input_interrupt(4); }
 
-enum StateTransitions
-{
+enum StateTransitions {
   ST_CMD_OPEN,
   ST_CMD_CLOSE,
   ST_SAFETY_EDGE_HIT,
@@ -108,8 +85,7 @@ enum StateTransitions
   ST_LIMIT_CLOSED
 };
 
-void setup()
-{
+void setup() {
   Serial.begin(9600);
 
   /* Initialise LED */
@@ -117,8 +93,8 @@ void setup()
 
   /* Initialise search button pin */
   pinMode(input_pins[0], INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(input_pins[0]), open_door_button_interrupt,
-                  FALLING);
+  attachInterrupt(digitalPinToInterrupt(input_pins[0]),
+                  open_door_button_interrupt, FALLING);
 
   pinMode(input_pins[1], INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(input_pins[1]),
@@ -137,8 +113,7 @@ void setup()
                   closed_limit_switch_interrupt, CHANGE);
 
   /* Wait for serial connection to be established */
-  while (!Serial)
-  {
+  while (!Serial) {
     delay(500);
   }
 
@@ -158,36 +133,29 @@ void setup()
 
 uint32_t last_time = 0;
 
-void loop()
-{
+void loop() {
   /* Poll for new messages */
   communication_poll();
 
   fsm.run_machine();
 
   /* Handle buttons */
-  for (uint8_t i = 0; i < 2; i++)
-  {
-    if (button_pushed[i])
-    {
+  for (uint8_t i = 0; i < 2; i++) {
+    if (button_pushed[i]) {
       button_pushed[i] = false;
 
-      if (i == 0)
-      {
+      if (i == 0) {
         fsm.trigger(ST_CMD_OPEN);
       }
-      if (i == 1)
-      {
+      if (i == 1) {
         fsm.trigger(ST_CMD_CLOSE);
       }
     }
   }
 
   /* Handle switches */
-  for (uint8_t i = 2; i < 5; i++)
-  {
-    if (button_pushed[i])
-    {
+  for (uint8_t i = 2; i < 5; i++) {
+    if (button_pushed[i]) {
       button_pushed[i] = false;
     }
   }
@@ -197,16 +165,12 @@ void loop()
   uint32_t now = millis();
 
   // For Yellow Flashing LED
-  if (yellow_flash != -1 && now - last_time > 500)
-  {
+  if (yellow_flash != -1 && now - last_time > 500) {
     last_time = now;
 
-    if (yellow_flash == 0)
-    {
+    if (yellow_flash == 0) {
       led_set(255, 180, 0);
-    }
-    else
-    {
+    } else {
       led_set(0, 0, 0);
     }
 
@@ -214,16 +178,12 @@ void loop()
   }
 
   // for green flashing led
-  if (green_flash != -1 && now - last_time > 500)
-  {
+  if (green_flash != -1 && now - last_time > 500) {
     last_time = now;
 
-    if (green_flash == 0)
-    {
+    if (green_flash == 0) {
       led_set(0, 255, 0);
-    }
-    else
-    {
+    } else {
       led_set(0, 0, 0);
     }
 
