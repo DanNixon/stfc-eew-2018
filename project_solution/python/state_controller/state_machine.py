@@ -1,10 +1,12 @@
 from __future__ import print_function
 
 from transitions import Machine, State
+from .types import Command, DeviceType, DoorStates
 
 class SafetySystem(object):
 
     states = [
+        State(name='initial'),
         State(name='button_1_waiting', on_enter=['on_enter_button_1_waiting']),
         State(name='button_2_waiting', on_enter=['on_enter_button_2_waiting']),
         State(name='button_3_waiting', on_enter=['on_enter_button_3_waiting']),
@@ -26,7 +28,7 @@ class SafetySystem(object):
         self.machine = Machine(
             model=self,
             states=SafetySystem.states,
-            initial='button_1_waiting'
+            initial='initial'
         )
 
         self.machine.add_transition(
@@ -121,19 +123,31 @@ class SafetySystem(object):
 
     def handle_message(self, msg):
         print(msg)
+        node_type, node_id, command, payload = msg
+
+        if (node_type == DeviceType.SEARCH_POINT and node_id == 0):
+            self.press_button1()
+        elif (node_type == DeviceType.SEARCH_POINT and node_id == 1):
+            self.press_button2()
+        elif (node_type == DeviceType.SEARCH_POINT and node_id == 2):
+            self.press_button3()
+
         # TODO
+
+    def on_enter_button_1_waiting(self):
+        self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, b'\xff\xff\x00')
 
     def on_enter_button_2_waiting(self):
-        print('Change LED 1 green and LED 2 yellow')
-        # TODO
+        self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, b'\x00\xff\x00')
+        self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, b'\xff\xff\x00')
 
     def on_enter_button_3_waiting(self):
-        print('Change LED 2 green and LED 3 yellow')
-        # TODO
+        self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, b'\x00\xff\x00')
+        self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, b'\xff\xff\x00')
 
     def on_enter_key_rack_waiting(self):
-        print('Change LED 3 green and key rack LED yellow')
-        # TODO
+        self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, b'\x00\xff\x00')
+        self.device_group.send_message(DeviceType.KEY_RACK, 0, Command.SET_LED, b'\xff\xff\x00')
 
     def on_enter_door_closing(self):
         print('Change key rack LED green - door is closing')
@@ -160,13 +174,11 @@ class SafetySystem(object):
         # TODO
 
     def on_enter_ready(self):
-        print('The area is now ready to start')
-        # TODO
+        self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, b'\x00\xff\x00')
 
     def on_enter_shutter_open(self):
-        print('The shutter is now open')
-        # TODO
+        self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, b'\x00\x00\xff')
 
     def on_enter_error(self):
-        print('There has been an error')
-        # TODO
+        print('There has been an error.')
+        self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, b'\xff\x00\x00')

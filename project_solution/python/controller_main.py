@@ -5,7 +5,7 @@ from __future__ import print_function
 import sys
 
 from state_controller.device import Device, DeviceGroup
-from state_controller.sttae_machine import SafetySystem
+from state_controller.state_machine import SafetySystem
 
 
 with DeviceGroup([Device(p) for p in sys.argv[1:]]) as dg:
@@ -13,6 +13,8 @@ with DeviceGroup([Device(p) for p in sys.argv[1:]]) as dg:
 
     fsm = SafetySystem(dg)
     dg.start_async_reading()
+
+    fsm.to_button_1_waiting()
 
     while True:
         while dg.rx_messages_waiting:
