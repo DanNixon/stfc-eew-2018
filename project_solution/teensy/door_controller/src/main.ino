@@ -1,45 +1,83 @@
 #include <Fsm.h>
-
 #include <communication.h>
 #include <led.h>
 #include <types.h>
 
+enum StateTransitions {
+  ST_CMD_OPEN,
+  ST_CMD_CLOSE,
+  ST_SAFETY_EDGE_HIT,
+  ST_CMD_LOCK,
+  ST_CMD_UNLOCK,
+  ST_LIMIT_OPEN,
+  ST_LIMIT_CLOSED
+};
+
 int8_t green_flash = -1;
 int8_t yellow_flash = -1;
 
-void on_enter_state_unknown() { led_set(0, 0, 0); }
+void on_enter_state_unknown() {
+  led_set(0, 0, 0);
+  uint8_t msg = DOOR_STATE_UNKNOWN;
+  communication_tx(CMD_STATE_CHANGED, &msg, 1);
+}
 
-void on_enter_state_open() { led_set(0, 255, 0); }
+void on_enter_state_open() {
+  led_set(0, 255, 0);
+  uint8_t msg = DOOR_STATE_OPEN;
+  communication_tx(CMD_STATE_CHANGED, &msg, 1);
+}
 
-void on_enter_state_closed() { led_set(255, 255, 0); }
+void on_enter_state_closed() {
+  led_set(255, 255, 0);
+  uint8_t msg = DOOR_STATE_CLOSED;
+  communication_tx(CMD_STATE_CHANGED, &msg, 1);
+}
 
-void on_enter_state_error() { led_set(255, 0, 0); }
+void on_enter_state_error() {
+  led_set(255, 0, 0);
+  uint8_t msg = DOOR_STATE_ERROR;
+  communication_tx(CMD_STATE_CHANGED, &msg, 1);
+}
 
-void on_enter_state_opening() { green_flash = 0; }
+void on_enter_state_opening() {
+  green_flash = 0;
+  uint8_t msg = DOOR_STATE_OPENING;
+  communication_tx(CMD_STATE_CHANGED, &msg, 1);
+}
 
 void on_exit_state_opening() { green_flash = -1; }
 
-void on_enter_state_closing() { yellow_flash = 0; }
+void on_enter_state_closing() {
+  yellow_flash = 0;
+  uint8_t msg = DOOR_STATE_CLOSING;
+  communication_tx(CMD_STATE_CHANGED, &msg, 1);
+}
 
 void on_exit_state_closing() { yellow_flash = -1; }
 
-void on_enter_state_locked() { led_set(0, 0, 255); }
+void on_enter_state_locked() {
+  led_set(0, 0, 255);
+  uint8_t msg = DOOR_STATE_LOCKED;
+  communication_tx(CMD_STATE_CHANGED, &msg, 1);
+}
 
 State state_unknown(on_enter_state_unknown, NULL, NULL);
 State state_error(on_enter_state_error, NULL, NULL);
 State state_open(on_enter_state_open, NULL, NULL);
-State state_opening(on_enter_state_opening, NULL, NULL);
-State state_closed(on_enter_state_closed, NULL, on_exit_state_opening);
+State state_opening(on_enter_state_opening, NULL, on_exit_state_opening);
+State state_closed(on_enter_state_closed, NULL, NULL);
 State state_closing(on_enter_state_closing, NULL, on_exit_state_closing);
 State state_locked(on_enter_state_locked, NULL, NULL);
 
 Fsm fsm(&state_unknown);
 
-const uint8_t this_node_type = DEVICE_SEARCH_POINT;
+const uint8_t this_node_type = DEVICE_DOOR;
 const uint8_t this_node_id = 0;
 
 const int led_pin = 14;
-// Open = 16, Close = 15, Safety = 17, limit open = 18, limit close = 19.
+// Open = 16, Close = 15, Safety = 17, limit up -> open = 18, limit down ->
+// close = 19.
 const int input_pins[] = {16, 15, 17, 18, 19};
 
 volatile unsigned long last_change_time[] = {0, 0, 0, 0, 0};
@@ -47,9 +85,13 @@ volatile bool button_pushed[] = {false, false, false, false, false};
 
 void communication_rx(uint8_t cmd, uint8_t *payload, size_t payload_len) {
   switch (cmd) {
-    case CMD_SET_LED: {
-      if (payload_len == 3) {
-        led_set(payload[0], payload[1], payload[2]);
+    case CMD_DOOR_LOCK: {
+      if (payload_len == 1) {
+        if (payload[0] == 1) {
+          fsm.trigger(ST_CMD_LOCK);
+        } else if (payload[0] == 0) {
+          fsm.trigger(ST_CMD_UNLOCK);
+        }
       }
       break;
     }
@@ -75,16 +117,6 @@ void open_limit_switch_interrupt() { handle_input_interrupt(3); }
 
 void closed_limit_switch_interrupt() { handle_input_interrupt(4); }
 
-enum StateTransitions {
-  ST_CMD_OPEN,
-  ST_CMD_CLOSE,
-  ST_SAFETY_EDGE_HIT,
-  ST_CMD_LOCK,
-  ST_CMD_UNLOCK,
-  ST_LIMIT_OPEN,
-  ST_LIMIT_CLOSED
-};
-
 void setup() {
   Serial.begin(9600);
 
@@ -102,22 +134,22 @@ void setup() {
 
   pinMode(input_pins[2], INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(input_pins[2]), safety_switch_interrupt,
-                  CHANGE);
+                  FALLING);
 
   pinMode(input_pins[3], INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(input_pins[3]),
-                  open_limit_switch_interrupt, CHANGE);
+                  open_limit_switch_interrupt, FALLING);
 
   pinMode(input_pins[4], INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(input_pins[4]),
-                  closed_limit_switch_interrupt, CHANGE);
+                  closed_limit_switch_interrupt, FALLING);
 
   /* Wait for serial connection to be established */
   while (!Serial) {
     delay(500);
   }
 
-  fsm.add_transition(&state_unknown, &state_open, ST_CMD_OPEN, NULL);
+  fsm.add_transition(&state_unknown, &state_opening, ST_CMD_OPEN, NULL);
   fsm.add_transition(&state_open, &state_closing, ST_CMD_CLOSE, NULL);
   fsm.add_transition(&state_closing, &state_closed, ST_LIMIT_CLOSED, NULL);
   fsm.add_transition(&state_closed, &state_locked, ST_CMD_LOCK, NULL);
@@ -125,10 +157,9 @@ void setup() {
   fsm.add_transition(&state_closed, &state_opening, ST_CMD_OPEN, NULL);
   fsm.add_transition(&state_opening, &state_error, ST_LIMIT_CLOSED, NULL);
   fsm.add_transition(&state_opening, &state_error, ST_SAFETY_EDGE_HIT, NULL);
-  fsm.add_transition(&state_opening, &state_error, ST_LIMIT_CLOSED, NULL);
-  fsm.add_transition(&state_opening, &state_error, ST_SAFETY_EDGE_HIT, NULL);
   fsm.add_transition(&state_closing, &state_error, ST_SAFETY_EDGE_HIT, NULL);
   fsm.add_transition(&state_closing, &state_error, ST_LIMIT_OPEN, NULL);
+  fsm.add_transition(&state_opening, &state_open, ST_LIMIT_OPEN, NULL);
 }
 
 uint32_t last_time = 0;
@@ -140,7 +171,7 @@ void loop() {
   fsm.run_machine();
 
   /* Handle buttons */
-  for (uint8_t i = 0; i < 2; i++) {
+  for (uint8_t i = 0; i < 5; i++) {
     if (button_pushed[i]) {
       button_pushed[i] = false;
 
@@ -150,13 +181,15 @@ void loop() {
       if (i == 1) {
         fsm.trigger(ST_CMD_CLOSE);
       }
-    }
-  }
-
-  /* Handle switches */
-  for (uint8_t i = 2; i < 5; i++) {
-    if (button_pushed[i]) {
-      button_pushed[i] = false;
+      if (i == 2) {
+        fsm.trigger(ST_SAFETY_EDGE_HIT);
+      }
+      if (i == 3) {
+        fsm.trigger(ST_LIMIT_OPEN);
+      }
+      if (i == 4) {
+        fsm.trigger(ST_LIMIT_CLOSED);
+      }
     }
   }
 
