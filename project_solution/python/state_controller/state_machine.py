@@ -3,6 +3,12 @@ from __future__ import print_function
 from transitions import Machine, State
 from .types import Command, DeviceType, DoorStates
 
+COLOUR_OFF = b'\x00\x00\x00'
+COLOUR_RED = b'\xff\x00\x00'
+COLOUR_GREEN = b'\x00\xff\x00'
+COLOUR_BLUE = b'\x00\x00\xff'
+COLOUR_YELLOW = b'\xff\xff\x00'
+
 class SafetySystem(object):
 
     states = [
@@ -14,14 +20,12 @@ class SafetySystem(object):
         State(name='key_rack_full', on_enter=['on_enter_key_rack_full']),
         State(name='door_closed',on_enter=['on_enter_door_closed']),
         State(name='door_locking',on_enter=['on_enter_door_locking']),
-        State(name='door_locked',on_enter=['on_enter_door_locked']),
         State(name='shutter_open',on_enter=['on_enter_shutter_open']),
-        State(name='shutter_closed',on_enter=['on_enter_shutter_closed']),
         State(name='door_unlocking',on_enter=['on_enter_door_unlocking']),
         State(name='error',on_enter=['on_enter_error']),
     ]
 
-    def __init__(self, device_group):
+    def __init__(self, device_group=None):
         self.device_group = device_group
 
         self.machine = Machine(
@@ -79,26 +83,14 @@ class SafetySystem(object):
         )
 
         self.machine.add_transition(
-            trigger='doot_is_locked',
+            trigger='door_is_locked',
             source=['door_locking'],
-            dest='door_locked'
-        )
-
-        self.machine.add_transition(
-            trigger='',
-            source=['door_locked'],
             dest='shutter_open'
         )
 
         self.machine.add_transition(
             trigger='close_shutter',
             source=['shutter_open'],
-            dest='shutter_closed'
-        )
-
-        self.machine.add_transition(
-            trigger='',
-            source=['shutter_closed'],
             dest='door_unlocking'
         )
 
@@ -128,48 +120,68 @@ class SafetySystem(object):
         # TODO
 
     def on_enter_button_1_waiting(self):
-        self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, b'\xff\xff\x00')
+        print('Waiting for search point 1')
+        if self.device_group is not None:
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, COLOUR_YELLOW)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, COLOUR_OFF)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, COLOUR_OFF)
+            self.device_group.send_message(DeviceType.KEY_RACK, 0, Command.SET_LED, COLOUR_OFF)
 
     def on_enter_button_2_waiting(self):
-        self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, b'\x00\xff\x00')
-        self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, b'\xff\xff\x00')
+        print('Waiting for search point 2')
+        if self.device_group is not None:
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, COLOUR_YELLOW)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, COLOUR_OFF)
+            self.device_group.send_message(DeviceType.KEY_RACK, 0, Command.SET_LED, COLOUR_OFF)
 
     def on_enter_button_3_waiting(self):
-        self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, b'\x00\xff\x00')
-        self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, b'\xff\xff\x00')
+        print('Waiting for search point 3')
+        if self.device_group is not None:
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, COLOUR_YELLOW)
+            self.device_group.send_message(DeviceType.KEY_RACK, 0, Command.SET_LED, COLOUR_OFF)
 
     def on_enter_key_rack_waiting(self):
-        self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, b'\x00\xff\x00')
-        self.device_group.send_message(DeviceType.KEY_RACK, 0, Command.SET_LED, b'\xff\xff\x00')
+        print('Blockhouse search complete, waiting for full key rack')
+        if self.device_group is not None:
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.KEY_RACK, 0, Command.SET_LED, COLOUR_YELLOW)
 
     def on_enter_key_rack_full(self):
-        print("Key rack light green")
-        # TODO
+        print('Key rack is full, waiting for blockhouse door to be closed')
+        if self.device_group is not None:
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 0, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 1, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.SEARCH_POINT, 2, Command.SET_LED, COLOUR_GREEN)
+            self.device_group.send_message(DeviceType.KEY_RACK, 0, Command.SET_LED, COLOUR_GREEN)
 
     def on_enter_door_closed(self):
-        pass
-        # TODO
+        print('Blockhouse door is closed, ready to lock door and open shutter')
+        if self.device_group is not None:
+            self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, COLOUR_GREEN)
 
     def on_enter_door_locking(self):
-        pass
-        # TODO
-
-    def on_enter_door_locked(self):
-        pass
-        # TODO
+        print('Shutter open requested, locking blockhouse door')
+        if self.device_group is not None:
+            # TODO: send door lock command
+            self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, COLOUR_YELLOW)
 
     def on_enter_shutter_open(self):
-        print("shutter led green")
-        # TODO
-
-    def on_enter_shutter_close(self):
-        print("shutter led blue")
-        # TODO
+        print('Blockhouse door is locked, shutter is open')
+        if self.device_group is not None:
+            self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, COLOUR_BLUE)
 
     def on_enter_door_unlocking(self):
-        pass
-        # TODO
+        print('Shutter is closed, unlocking blockhouse door')
+        if self.device_group is not None:
+            # TODO: send door unlock command
+            self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, COLOUR_GREEN)
 
     def on_enter_error(self):
-        print('There has been an error.')
-        self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, b'\xff\x00\x00')
+        print('There has been an error')
+        if self.device_group is not None:
+            self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, COLOUR_RED)
