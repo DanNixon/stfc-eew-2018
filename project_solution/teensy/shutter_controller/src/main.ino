@@ -23,10 +23,6 @@ void communication_rx(uint8_t cmd, uint8_t* payload, size_t payload_len) {
   }
 }
 
-void Open_Shutter_Interrupt() { handle_button_interrupt(0); }
-
-void Close_Shutter_Interrupt() { handle_button_interrupt(1); }
-
 void handle_button_interrupt(int index) {
   const auto now = millis();
 
@@ -35,6 +31,9 @@ void handle_button_interrupt(int index) {
     last_change_time[index] = now;
   }
 }
+void open_shutter_button_interrupt() { handle_button_interrupt(0); }
+
+void close_shutter_button_interrupt() { handle_button_interrupt(1); }
 
 void setup() {
   Serial.begin(9600);
@@ -44,12 +43,12 @@ void setup() {
 
   /* Initialise search button pin */
   pinMode(openButton_Pin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(openButton_Pin), Open_Shutter_Interrupt,
-                  FALLING);
+  attachInterrupt(digitalPinToInterrupt(openButton_Pin),
+                  open_shutter_button_interrupt, FALLING);
 
   pinMode(closeButton_Pin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(closeButton_Pin),
-                  Close_Shutter_Interrupt, FALLING);
+                  close_shutter_button_interrupt, FALLING);
 
   /* Wait for serial connection to be established */
   while (!Serial) {
