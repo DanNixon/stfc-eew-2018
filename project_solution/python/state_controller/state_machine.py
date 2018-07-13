@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from transitions import Machine, State
+from transitions.core import MachineError
 from .types import Command, DeviceType, DoorStates
 
 COLOUR_OFF = b'\x00\x00\x00'
@@ -8,6 +9,7 @@ COLOUR_RED = b'\xff\x00\x00'
 COLOUR_GREEN = b'\x00\xff\x00'
 COLOUR_BLUE = b'\x00\x00\xff'
 COLOUR_YELLOW = b'\xff\xff\x00'
+
 
 class SafetySystem(object):
 
@@ -95,7 +97,7 @@ class SafetySystem(object):
         )
 
         self.machine.add_transition(
-            trigger='door_is_unlocked',
+            trigger='door_is_closed',
             source=['door_unlocking'],
             dest='door_closed'
         )
@@ -110,14 +112,29 @@ class SafetySystem(object):
         print(msg)
         node_type, node_id, command, payload = msg
 
-        if (node_type == DeviceType.SEARCH_POINT and node_id == 0):
-            self.press_search_point_1_button()
-        elif (node_type == DeviceType.SEARCH_POINT and node_id == 1):
-            self.press_search_point_2_button()
-        elif (node_type == DeviceType.SEARCH_POINT and node_id == 2):
-            self.press_search_point_3_button()
-
-        # TODO
+        try:
+            if node_type == DeviceType.SEARCH_POINT and node_id == 0:
+                self.press_search_point_1_button()
+            elif node_type == DeviceType.SEARCH_POINT and node_id == 1:
+                self.press_search_point_2_button()
+            elif node_type == DeviceType.SEARCH_POINT and node_id == 2:
+                self.press_search_point_3_button()
+            elif node_type == DeviceType.KEY_RACK and command == Command.SWITCH_CHANGE and payload == b'\x00\x01':
+                self.key_rack_full()
+            elif node_type == DeviceType.KEY_RACK and command == Command.SWITCH_CHANGE and payload == b'\x00\x00':
+                self.key_rack_not_full()
+            elif node_type == DeviceType.DOOR and command == Command.STATE_CHANGED and payload == chr(DoorStates.CLOSED):
+                self.door_is_closed()
+            elif node_type == DeviceType.DOOR and command == Command.STATE_CHANGED and payload == chr(DoorStates.OPENING):
+                self.door_is_opening()
+            elif node_type == DeviceType.DOOR and command == Command.STATE_CHANGED and payload == chr(DoorStates.LOCKED):
+                self.door_is_locked()
+            elif node_type == DeviceType.SHUTTER_CONTROL and payload == b'\x01':
+                self.close_shutter()
+            elif node_type == DeviceType.SHUTTER_CONTROL and payload == b'\x00':
+                self.open_shutter()
+        except MachineError:
+            pass
 
     def on_enter_button_1_waiting(self):
         print('Waiting for search point 1')
@@ -167,7 +184,7 @@ class SafetySystem(object):
     def on_enter_door_locking(self):
         print('Shutter open requested, locking blockhouse door')
         if self.device_group is not None:
-            # TODO: send door lock command
+            self.device_group.send_message(DeviceType.DOOR, 0, Command.DOOR_LOCK, b'\x01')
             self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, COLOUR_YELLOW)
 
     def on_enter_shutter_open(self):
@@ -178,10 +195,13 @@ class SafetySystem(object):
     def on_enter_door_unlocking(self):
         print('Shutter is closed, unlocking blockhouse door')
         if self.device_group is not None:
-            # TODO: send door unlock command
+            self.device_group.send_message(DeviceType.DOOR, 0, Command.DOOR_LOCK, b'\x00')
             self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, COLOUR_GREEN)
 
     def on_enter_error(self):
         print('There has been an error')
         if self.device_group is not None:
             self.device_group.send_message(DeviceType.SHUTTER_CONTROL, 0, Command.SET_LED, COLOUR_RED)
+
+            #1 to lock DOOR, 0 to unlock DOOR
+            #1 CLOSE SHUTTER, 0 OPEN SHUTTER
